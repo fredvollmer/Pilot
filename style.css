@@ -1,0 +1,151 @@
+body, html {
+    margin: 0;
+
+}
+
+::-webkit-scrollbar
+{
+    background: transparent;
+}
+
+::-webkit-scrollbar-track-piece
+{
+    background-color: #2B515C;
+    -webkit-border-radius: 6px;
+}
+
+#main {
+    width: 70vw;
+    height: 100vh;
+    background: white;
+    position: absolute;
+}
+
+#sidebar {
+    width: 30vw;
+    height:100vh;
+    position: absolute;
+    right: 0;
+    top: 0;
+    background: #2B515C;
+}
+
+.node {
+    height: 22%;
+    position: relative;
+}
+
+.node-title {
+    margin-left: 3%;
+    margin-top: 3%;
+    padding-bottom: 10px;
+}
+
+#title-client {
+    border-bottom: 3px solid #438573;
+}
+
+#title-a {
+    border-bottom: 3px solid #c69231;
+}
+
+#title-b {
+    border-bottom: 3px solid #CF5742;
+}
+
+#title-c {
+    border-bottom: 3px solid #814C99;
+}
+
+.node-title img {
+    width: 42px;
+    height: auto;
+}
+
+.node-log {
+    font-family: courier, sans-serif;
+    font-weight: bold;
+    display: block;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    position: absolute;
+    bottom: 0;
+    left: 3%;
+    top: 70px;
+    right: 0;
+    color: whitesmoke;
+}
+
+.node-log p:last-child {
+    opacity: 1.0;
+}
+
+.node-log p {
+    opacity: 0.7;
+    margin: 0;
+    display: none;
+}
+
+#clientLog .time{
+    color: #438573;
+}
+
+#Log0 .time {
+    color: #c69231;
+}
+
+#Log1 .time {
+    color: #CF5742;
+}
+
+#Log2 .time {
+    color: #814C99;
+}
+
+.cmd {
+    color: cyan;
+}
+
+#mazecanvas {
+    display: block;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+#arrow {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+}
+
+.dot {
+    background-color: cyan;
+    width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    position: absolute;
+    z-index: 6000;
+    display: none;
+}
+
+.button {
+    border-radius: 8px;
+    width: 120px;
+    background-color: #438573;
+    text-align: center;
+    height: 35px;
+    float: right;
+    margin-right: 15px;
+    color: white;
+    padding-top: 10px;
+    display: block;
+    font-size: 20px;
+    font-family:  arial, sans-serif;
+    cursor: pointer;
+}
+
+.button:hover {
+    background-color: #3a7464;
+}

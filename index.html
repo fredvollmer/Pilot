@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Oculus</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+    <script src="path.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="main">
+    <canvas id="mazecanvas">Can't load the maze game, because your browser doesn't support HTML5.</canvas>
+    <img src="arrow.png" id="arrow"/>
+</div>
+<div id="sidebar">
+    <div class="node">
+        <div class="node-title" id="title-client">
+            <img src="arrow.png">
+            <div class="button" id="start">Start</div>
+        </div>
+        <div class="node-log" id="clientLog">
+        </div>
+    </div>
+
+    <div class="node">
+        <div class="node-title" id="title-a">
+            <img src="iconA.png">
+        </div>
+        <div class="node-log" id="Log0">
+        </div>
+    </div>
+
+    <div class="node">
+        <div class="node-title" id="title-b">
+            <img src="iconB.png">
+        </div>
+        <div class="node-log" id="Log1">
+        </div>
+    </div>
+
+    <div class="node">
+        <div class="node-title" id="title-c">
+            <img src="iconC.png">
+        </div>
+        <div class="node-log" id="Log2">
+        </div>
+    </div>
+</div>
+<script>
+
+    var direction = {
+        STRAIGHT: 0,
+        RIGHT: 1,
+        TURNAROUND: 2,
+        LEFT: 3
+    };
+
+    var bearing = {
+        NORTH: 0,
+        EAST: 1,
+        SOUTH: 2,
+        WEST: 3
+    }
+
+    // Lookup tables
+    var aTable = {
+        // Destination
+        x: {
+            // Origin
+            B: {direction: direction.TURNAROUND, next: 1},
+            next: 1
+        }
+    };
+    var bTable = {
+        // Destination
+        x: {
+            // Origin
+            A: {direction: direction.LEFT, next: 2},
+            C: {direction: direction.TURNAROUND, next: 2},
+            next: 2
+        }
+    };
+    var cTable = {
+        // Destination
+        x: {
+            // Origin
+            A: {direction: direction.TURNAROUND, next: -1},
+            B: {direction: direction.LEFT, next: -1},
+            next: -1,
+            final: [170, direction.RIGHT]
+        }
+    };
+
+    var lookupTables = [aTable, bTable, cTable];
+
+    var sensors = [];
+
+    var currentBearing = bearing.NORTH;
+    var currentDeg = 0;
+    var canvas = document.getElementById("mazecanvas");
+    var context = canvas.getContext("2d");
+    var bgColor = "white";
+    context.canvas.width = window.innerWidth * .7;
+    context.canvas.height = window.innerHeight;
+    var h = canvas.height;
+    var w = canvas.width;
+    var mazeWidth = canvas.width;
+    var mazeHeight = canvas.height;
+    var intervalVar;
+
+    var sensorPositions = [
+        {x: w * .26, y: h * .72},
+        {x: w * .6, y: h * .72},
+        {x: w * .6, y: h * .27}
+    ];
+
+    class Client {
+        constructor() {
+            this.x = w * .6;
+            this.y = h * .93;
+            this.orientation = direction.STRAIGHT
+        }
+
+        time() {
+            var date = new Date();
+            return date.toISOString().substring(11);
+        }
+
+        start(destination) {
+            for (i = 0; i < sensors.length; i++) {
+                sensors[i].postMessage({
+                    command: "start",
+                    destination: destination,
+                    origin: this.orientation,
+                    clientX: this.x,
+                    clientY: this.y
+                });
+                animateMessage(this.x, this.y, sensorPositions[i].x, sensorPositions[i].y);
+            }
+            writeToLog("client", this.time(), "<span class='cmd'>START</span> broadcast sent...");
+        }
+    }
+
+    var client = new Client();
+
+    function drawMazeAndRectangle(rectX, rectY) {
+        makeWhite(0, 0, canvas.width, canvas.height);
+        var mazeImg = new Image();
+        mazeImg.onload = function () {
+            context.drawImage(mazeImg, 0, 0, w, h);
+            //drawRectangle(rectX, rectY, "#FFF");
+
+            // Sensor A
+            context.beginPath();
+            context.arc(sensorPositions[0].x, sensorPositions[0].y, 21, 0, 2 * Math.PI, false);
+            context.closePath();
+            context.fillStyle = '#DEA54B';
+            context.fill();
+            context.font = "30px Arial";
+            context.fillStyle = "white";
+            context.textAlign = "center";
+            context.textBaseline = "middle";
+            context.fillText("A", w * .26, h * .72);
+
+            // Sensor B
+            context.beginPath();
+            context.arc(sensorPositions[1].x, sensorPositions[1].y, 21, 0, 2 * Math.PI, false);
+            context.closePath();
+            context.fillStyle = '#CF5742';
+            context.fill();
+            context.font = "30px Arial";
+            context.fillStyle = "white";
+            context.textAlign = "center";
+            context.textBaseline = "middle";
+            context.fillText("B", w * .6, h * .72);
+
+            // Sensor C
+            context.beginPath();
+            context.arc(sensorPositions[2].x, sensorPositions[2].y, 21, 0, 2 * Math.PI, false);
+            context.closePath();
+            context.fillStyle = '#814C99';
+            context.fill();
+            context.font = "30px Arial";
+            context.fillStyle = "white";
+            context.textAlign = "center";
+            context.textBaseline = "middle";
+            context.fillText("C", w * .6, h * .27);
+
+            // Arrow
+            $("#arrow").css({
+                left: client.x,
+                top: client.y
+            });
+
+        };
+        mazeImg.src = "maze.svg";
+    }
+    function drawRectangle(x, y, style, w = 15, h=15) {
+        makeWhite(myPosX, myPosY, w, h);
+        myPosX = x;
+        myPosY = y;
+        context.beginPath();
+        context.rect(x, y, w, h);
+        context.closePath();
+        context.fillStyle = style;
+        context.fill();
+    }
+
+    function rotate(quadrants) {
+        currentBearing += -quadrants ;
+        if (currentBearing == -1) currentBearing  = 3;
+        if (currentBearing == 4) currentBearing = 0;
+        //alert(currentBearing);
+        var degrees = quadrants * 90;
+        if (Math.abs(degrees) > 180) {
+            degrees = (degrees < 0) ? 90 : -90;
+        }
+
+        // caching the object for performance reasons
+        var elem = $("#main");
+        var _arrow = $("#arrow");
+
+        // we use a pseudo object for the animation
+        // (starts from `0` to `angle`), you can name it as you want
+        $({deg: currentDeg}).animate({deg: currentDeg + degrees}, {
+            duration: 400,
+            step: function (now) {
+                // in the step-callback (that is fired each step of the animation),
+                // you can use the `now` paramter which contains the current
+                // animation-position (`0` up to `angle`)
+                elem.css({
+                    transform: 'rotate(' + now + 'deg)'
+                });
+
+                _arrow.css({
+                    transform: 'rotate(' + -now + 'deg)'
+                });
+            }
+        });
+        currentDeg = currentDeg + degrees;
+    }
+    function moveRect(e) {
+        var newX;
+        var newY;
+        var movingAllowed;
+        e = e || window.event;
+        switch (e.keyCode) {
+            case 38:   // arrow up key
+            case 87: // W key
+                    switch(currentBearing) {
+                        case bearing.NORTH:
+                            newX = client.x;
+                            newY = client.y - 5;
+                            break;
+                        case bearing.EAST:
+                            newX = client.x + 5;
+                            newY = client.y;
+                            break;
+                        case bearing.SOUTH:
+                            newX = client.x;
+                            newY = client.y + 5;
+                            break;
+                        case bearing.WEST:
+                            newX = client.x - 5;
+                            newY = client.y;
+                            break;
+                    }
+                break;
+            case 37: // arrow left key
+            case 65: // A key
+                    //rotate
+                    rotate(1);
+                    break;
+            case 40: // arrow down key
+            case 83: // S key
+                    //rotate
+                    rotate(-2);
+                break;
+            case 39: // arrow right key
+            case 68: // D key
+                    //rotate
+                    rotate(-1);
+                break;
+        }
+        //alert(newX + ", " + newY);
+        movingAllowed = canMoveTo(newX, newY);
+        if (movingAllowed === 1) {      // 1 means 'the rectangle can move'
+            //drawRectangle(newX, newY, "#0000FF");
+            //drawRectangle(myPosX, myPosY, bgColor, 40, 40);
+            //context.drawImage(arrowImg, newX, newY, 40, 40);
+            $("#arrow").css({
+                left: newX,
+                top: newY
+            });
+            client.x = newX;
+            client.y = newY;
+        }
+        else if (movingAllowed === 2) { // 2 means 'the rectangle reached the end point'
+            clearInterval(intervalVar);
+            makeWhite(0, 0, canvas.width, canvas.height);
+            context.font = "40px Arial";
+            context.fillStyle = "blue";
+            context.textAlign = "center";
+            context.textBaseline = "middle";
+            context.fillText("Congratulations!", canvas.width / 2, canvas.height / 2);
+            window.removeEventListener("keydown", moveRect, true);
+        }
+    }
+    function canMoveTo(destX, destY) {
+        var imgData = context.getImageData(destX, destY, 40, 40);
+        var data = imgData.data;
+        var canMove = 1; // 1 means: the rectangle can move
+        if (destX >= 0 && destX <= mazeWidth - 40 && destY >= 0 && destY <= mazeHeight - 40) {
+            for (var i = 0; i < 4 * 40 * 40; i += 4) {
+                if (data[i] === 96) { // not same color as bg
+                    canMove = 0; // 0 means: the rectangle can't move
+                    break;
+                }
+                else if (data[i] === 213) { // #00FF00
+                    terminate();
+                    break;
+                }
+                else {
+                    canMove = 1;
+                }
+            }
+        }
+        else {
+            canMove = 0;
+        }
+        return canMove;
+    }
+
+    function terminate () {
+        for (i=0; i<sensors.length; i++) {
+            sensors[i].terminate();
+            writeToLog(i, client.time(), "Sensor node terminated.");
+            speakMessage("Navigation complete. Goodbye!");
+        }
+
+    }
+
+    function speakMessage (msg) {
+        var s = new window.SpeechSynthesisUtterance(msg);
+        s.rate = 0.7;
+        window.speechSynthesis.speak(s);
+    }
+
+    function makeWhite(x, y, w, h) {
+        context.beginPath();
+        context.rect(x, y, w, h);
+        context.closePath();
+        context.fillStyle = bgColor;
+        context.fill();
+    }
+
+    function writeToLog(i, time, entry) {
+        var a = $('<p> <span class="time">' +
+                time + ': </span>' + entry + '</p>');
+        if (i == "client") {
+            $("#clientLog").append(a);
+            updateScroll("clientLog");
+        } else {
+            $("#Log" + i).append(a);
+            updateScroll("Log" + i);
+        }
+        a.fadeIn('slow');
+    }
+
+    function broker(from, dest, packet) {
+        if (dest == "*") {
+            for (var i = 0; i < sensors.length; i++) {
+                if (i == from) continue;
+                //packet.uid = i;
+                animateMessage(sensorPositions[from].x, sensorPositions[from].y,
+                        sensorPositions[i].x, sensorPositions[i].y);
+                sensors[i].postMessage(packet);
+            }
+        } else {
+            sensors[dest].postMessage(packet);
+            animateMessage(sensorPositions[from].x, sensorPositions[from].y,
+                    sensorPositions[dest].x, sensorPositions[dest].y);
+        }
+    }
+
+    function updateScroll(e) {
+        var element = $('#' + e);
+        element.animate({scrollTop: element.prop("scrollHeight")}, 500);
+    }
+
+    function animateMessage(a_x, a_y, b_x, b_y) {
+        var dot = $("<div class='dot'></div>");
+        $("#main").append(dot[0]);
+        dot.fadeIn('fast');
+        var bezier_params = {
+            start: {
+                x: a_x,
+                y: a_y,
+                angle: 70
+            },
+            end: {
+                x:b_x,
+                y:b_y,
+                angle: -70,
+                length: 0.25
+            }
+        };
+
+        dot.animate({path : new $.path.bezier(bezier_params)}, 2000, function () {
+            dot.remove();
+        });
+    }
+
+    // *********************************************************
+
+    drawMazeAndRectangle(3, 3);
+    window.addEventListener("keydown", moveRect, true);
+
+    $("#start").click(function() {
+        // Init client
+        writeToLog("client", client.time(), "Wearable initialized.");
+
+        client.start("x");
+
+        $(this).fadeOut('slow');
+
+        speakMessage("Testing this shit");
+    });
+
+    // Build worker threads
+    for (i = 0; i < 3; i++) {
+        sensors.push(new Worker("sensor.js"));
+        //sensors[i].start();
+        sensors[i].onmessage = function (e) {
+            console.log("Received ack from " + e.data.uid);
+            if (typeof e.data.routeTo !== 'undefined') {
+                return broker(e.data.from, e.data.routeTo, e.data.packet);
+            }
+            animateMessage(sensorPositions[e.data.from].x, sensorPositions[e.data.from].y, client.x, client.y);
+            switch (e.data.command) {
+                case "log":
+                    writeToLog(e.data.uid, e.data.time, e.data.entry);
+                    break;
+                case "instruction":
+                    writeToLog("client", e.data.time, "<span class='cmd'>INSTRUCTION</span>: In " +
+                            e.data.instruction.distance + " feet, go " + e.data.instruction.direction);
+                    break;
+                case "range":
+                    animateMessage(client.x, client.y, sensorPositions[e.data.from].x, sensorPositions[e.data.from].y);
+                    sensors[e.data.from].postMessage({
+                        command: "range",
+                        x: client.x,
+                        y: client.y
+                    });
+                    break;
+            }
+        };
+        sensors[i].postMessage({
+            command: "init",
+            uid: i,
+            table: lookupTables[i],
+            x: sensorPositions[i].x,
+            y: sensorPositions[i].y
+        });
+    }
+
+</script>
+</body>
+</html>
