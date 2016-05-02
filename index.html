@@ -336,9 +336,8 @@
         for (i=0; i<sensors.length; i++) {
             sensors[i].terminate();
             writeToLog(i, client.time(), "Sensor node terminated.");
-            speakMessage("Navigation complete. Goodbye!");
         }
-
+        speakMessage("Navigation complete. Goodbye!");
     }
 
     function speakMessage (msg) {
