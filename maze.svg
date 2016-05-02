@@ -24,7 +24,7 @@
         <path d="M0.5,370.5 L334.5,370.5" id="Line-Copy-6" stroke="#60818F" stroke-width="3" stroke-linecap="square"></path>
         <path d="M0.5,98.5 L225.5,98.5" id="Line-Copy-15" stroke="#60818F" stroke-width="3" stroke-linecap="square"></path>
         <path d="M279.5,98.5 L332.5,98.5" id="Line-Copy-15" stroke="#60818F" stroke-width="3" stroke-linecap="square"></path>
-        <text id="" font-family="FontAwesome" font-size="40" font-weight="normal" fill="#D66B6B">
+        <text id="" font-family="FontAwesome" font-size="40" font-weight="normal" fill="#2EAC6B">
             <tspan x="236" y="87"></tspan>
         </text>
     </g>

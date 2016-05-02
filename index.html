@@ -61,7 +61,7 @@
         WEST: 3
     };
 
-    dirNames = ["straight", "right", "around", "left"];
+    dirNames = ["go straight", "turn right", "turn around", "turn left"];
 
     // Lookup tables
     var aTable = {
@@ -317,9 +317,9 @@
                     canMove = 0; // 0 means: the rectangle can't move
                     break;
                 }
-                else if (data[i] === 213) { // #00FF00
+                else if (data[i] === 47) { // #00FF00
                     terminate();
-                    break;
+                    return;
                 }
                 else {
                     canMove = 1;
@@ -444,9 +444,9 @@
                     break;
                 case "instruction":
                     writeToLog("client", e.data.time, "<span class='cmd'>INSTRUCTION</span>: In " +
-                            e.data.instruction.distance + " feet, turn " + dirNames[e.data.instruction.direction]);
+                            e.data.instruction.distance + " feet, " + dirNames[e.data.instruction.direction]);
                     speakMessage("In " +
-                    e.data.instruction.distance + " feet, turn " + dirNames[e.data.instruction.direction]);
+                    e.data.instruction.distance + " feet, " + dirNames[e.data.instruction.direction]);
                     break;
                 case "range":
                     animateMessage(client.x, client.y, sensorPositions[e.data.from].x, sensorPositions[e.data.from].y);
