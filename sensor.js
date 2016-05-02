@@ -260,7 +260,7 @@ function reset() {
 function takeResponsibility() {
     client = true;
 
-    rangeTimer = setInterval(rangeReq, 6000);
+    rangeTimer = setInterval(rangeReq, 900);
 
     initDistance = getInstruction().distance;
 
