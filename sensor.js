@@ -127,7 +127,7 @@ onmessage = function (e) {
             origin = e.data.origin;
             destination = e.data.destination;
             reset();
-            takeResponsibility();
+            setTimeout(takeResponsibility, 3000);
             break;
         }
 
@@ -260,7 +260,7 @@ function reset() {
 function takeResponsibility() {
     client = true;
 
-    rangeTimer = setInterval(rangeReq, 900);
+    rangeTimer = setInterval(rangeReq, 100);
 
     initDistance = getInstruction().distance;
 

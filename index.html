@@ -96,6 +96,8 @@
 
     var sensors = [];
 
+    var rangeSendCount = 0;
+    var rangeRecCount = 0;
     var currentBearing = bearing.NORTH;
     var currentDeg = 0;
     var canvas = document.getElementById("mazecanvas");
@@ -426,18 +428,28 @@
             if (typeof e.data.routeTo !== 'undefined') {
                 return broker(e.data.from, e.data.routeTo, e.data.packet);
             }
-            animateMessage(sensorPositions[e.data.from].x, sensorPositions[e.data.from].y, client.x, client.y);
+            if (e.data.command == "range") {
+                rangeRecCount++;
+                if (rangeRecCount % 20 == 0) {
+                    animateMessage(sensorPositions[e.data.from].x, sensorPositions[e.data.from].y, client.x, client.y);
+                }
+            } else {
+                animateMessage(sensorPositions[e.data.from].x, sensorPositions[e.data.from].y, client.x, client.y);
+            }
             switch (e.data.command) {
                 case "log":
                     writeToLog(e.data.uid, e.data.time, e.data.entry);
                     break;
                 case "instruction":
                     var partOne = (e.data.instruction.distance > 0) ? "In " + e.data.instruction.distance + " feet, " : "";
-                    writeToLog("client", e.data.time, "<span class='cmd'>INSTRUCTION</span>:" + partOne + dirNames[e.data.instruction.direction]);
+                    writeToLog("client", e.data.time, "<span class='cmd'>INSTRUCTION</span>: " + partOne + dirNames[e.data.instruction.direction]);
                     speakMessage(partOne + dirNames[e.data.instruction.direction]);
                     break;
                 case "range":
-                    animateMessage(client.x, client.y, sensorPositions[e.data.from].x, sensorPositions[e.data.from].y);
+                    rangeSendCount++;
+                    if (rangeSendCount % 20 == 0) {
+                        animateMessage(client.x, client.y, sensorPositions[e.data.from].x, sensorPositions[e.data.from].y);
+                    }
                     sensors[e.data.from].postMessage({
                         command: "range",
                         x: client.x,
