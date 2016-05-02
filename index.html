@@ -330,6 +330,7 @@
             writeToLog(i, client.time(), "Sensor node terminated.");
         }
         speakMessage("Navigation complete. Goodbye!");
+        $("#start").fadeIn("slow");
     }
 
     function speakMessage (msg) {
@@ -416,7 +417,6 @@
 
         $(this).fadeOut('slow');
 
-        speakMessage("Testing this shit");
     });
 
     // Build worker threads

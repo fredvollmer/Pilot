@@ -135,6 +135,7 @@ onmessage = function (e) {
         {
             clientX = e.data.x;
             clientY = e.data.y;
+            getInstruction();           // To set finalDistance
             clientRange = (!toFinal) ? getDistanceToClient() : finalDistance - getDistanceToClient();
 
             var sentThisTime = false;
@@ -168,12 +169,19 @@ onmessage = function (e) {
                     from: _uid
                 });
 
+                if (toFinal) return;
+
                 var next = getNextNode();
                 if (next instanceof Array) {
                     // Time to go to dest!
                     toFinal = true;
                     sentLast = false;
-                    instStatus = [false, false, false];
+                    instStatus = [
+                        {dist: 200, sent: false},
+                        {dist: 100, sent: false},
+                        {dist: 50, sent: false},
+                        {dist: 20, sent: false}
+                    ];
                 } else {
                     // Route to next node
                     postMessage({
@@ -197,6 +205,7 @@ onmessage = function (e) {
                     reset();
                 }
             }
+
             break;
         }
     }
