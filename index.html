@@ -296,16 +296,6 @@
             client.x = newX;
             client.y = newY;
         }
-        else if (movingAllowed === 2) { // 2 means 'the rectangle reached the end point'
-            clearInterval(intervalVar);
-            makeWhite(0, 0, canvas.width, canvas.height);
-            context.font = "40px Arial";
-            context.fillStyle = "blue";
-            context.textAlign = "center";
-            context.textBaseline = "middle";
-            context.fillText("Congratulations!", canvas.width / 2, canvas.height / 2);
-            window.removeEventListener("keydown", moveRect, true);
-        }
     }
     function canMoveTo(destX, destY) {
         var imgData = context.getImageData(destX, destY, 40, 40);
@@ -442,10 +432,9 @@
                     writeToLog(e.data.uid, e.data.time, e.data.entry);
                     break;
                 case "instruction":
-                    writeToLog("client", e.data.time, "<span class='cmd'>INSTRUCTION</span>: In " +
-                            e.data.instruction.distance + " feet, " + dirNames[e.data.instruction.direction]);
-                    speakMessage("In " +
-                    e.data.instruction.distance + " feet, " + dirNames[e.data.instruction.direction]);
+                    var partOne = (e.data.instruction.distance > 0) ? "In " + e.data.instruction.distance + " feet, " : "";
+                    writeToLog("client", e.data.time, "<span class='cmd'>INSTRUCTION</span>:" + partOne + dirNames[e.data.instruction.direction]);
+                    speakMessage(partOne + dirNames[e.data.instruction.direction]);
                     break;
                 case "range":
                     animateMessage(client.x, client.y, sensorPositions[e.data.from].x, sensorPositions[e.data.from].y);

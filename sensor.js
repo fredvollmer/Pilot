@@ -7,190 +7,200 @@ var letters = ["A", "B", "C"];
 var clientX, clientY;
 var myX, myY;
 var clientRange;
-var instStatus = [false, false, false, false];
+var instStatus = [
+    {dist: 200, sent: false},
+    {dist: 100, sent: false},
+    {dist: 50, sent: false},
+    {dist: 20, sent: false}
+];
 var toFinal = false;
 var finalDistance = 0;
 var sentLast = false;
 var initDistance = 0;
 
 //self.addEventListener('connect', function (e) {
-    //client = e.ports[0];
+//client = e.ports[0];
 
-    onmessage = function (e) {
-        console.log("Message received: " + e.data.command);
-        switch (e.data.command) {
-            case "init":
-            {
-                _uid = e.data.uid;
-                table = e.data.table;
-                myX = e.data.x;
-                myY = e.data.y;
-                postMessage({
-                    command: "log",
-                    entry: "Sensor node initialized.",
-                    time: getDate(),
-                    uid: _uid,
+onmessage = function (e) {
+    console.log("Message received: " + e.data.command);
+    switch (e.data.command) {
+        case "init":
+        {
+            _uid = e.data.uid;
+            table = e.data.table;
+            myX = e.data.x;
+            myY = e.data.y;
+            postMessage({
+                command: "log",
+                entry: "Sensor node initialized.",
+                time: getDate(),
+                uid: _uid,
+                from: _uid
+            });
+            break;
+        }
+        case "start":
+        {
+            clientX = e.data.clientX;
+            clientY = e.data.clientY;
+            destination = e.data.destination;
+            origin = e.data.origin;
+            postMessage({
+                command: "log",
+                entry: "Received <span class='cmd'>START</span> from wearable.",
+                time: getDate(),
+                from: _uid
+            });
+            postMessage({
+                command: "log",
+                entry: "Distance to wearable: " + Math.round(getDistanceToClient()),
+                time: getDate(),
+                uid: _uid,
+                from: _uid
+            });
+            // Broadcast CANDIDATE
+            postMessage({
+                routeTo: "*",
+                from: _uid,
+                packet: {
+                    command: "candidate",
+                    distance: getDistanceToClient(),
                     from: _uid
-                });
-                break;
-            }
-            case "start":
-            {
-                clientX = e.data.clientX;
-                clientY = e.data.clientY;
-                destination = e.data.destination;
-                origin = e.data.origin;
+                }
+            });
+            client =
+                responsibilityTimer = setTimeout(takeResponsibility, 3000);
+            break;
+        }
+        case "candidate":
+        {
+            postMessage({
+                command: "log",
+                time: getDate(),
+                entry: "Received <span class='cmd'>CANDIDATE</span> from " + letters[e.data.from],
+                uid: _uid,
+                from: _uid
+            });
+            if (getDistanceToClient() < parseInt(e.data.distance, 10)) {
+                // We're superior to candidate
                 postMessage({
-                    command: "log",
-                    entry: "Received <span class='cmd'>START</span> from wearable.",
-                    time: getDate(),
-                    from: _uid
-                });
-                postMessage({
-                    command: "log",
-                    entry: "Distance to wearable: " + Math.round(getDistanceToClient()),
-                    time: getDate(),
-                    uid: _uid,
-                    from: _uid
-                });
-                // Broadcast CANDIDATE
-                postMessage({
-                    routeTo: "*",
-                    from: _uid,
-                    packet: {
-                        command: "candidate",
-                        distance: getDistanceToClient(),
-                        from: _uid
+                    "routeTo": e.data.from,
+                    "from": _uid,
+                    "packet": {
+                        "command": "superior",
+                        "from": _uid
                     }
                 });
-                client =
-                responsibilityTimer = setTimeout(takeResponsibility, 3000);
-                break;
-            }
-            case "candidate":
-            {
+
                 postMessage({
                     command: "log",
                     time: getDate(),
-                    entry: "Received <span class='cmd'>CANDIDATE</span> from " + letters[e.data.from],
+                    entry: "Sent <span class='cmd'>SUPERIOR</span> to " + letters[e.data.from],
                     uid: _uid,
                     from: _uid
                 });
-                if (getDistanceToClient() < parseInt(e.data.distance, 10)) {
-                    // We're superior to candidate
-                    postMessage({
-                        "routeTo": e.data.from,
-                        "from": _uid,
-                        "packet": {
-                            "command": "superior",
-                            "from": _uid
-                        }
-                    });
+            }
+            break;
+        }
+        case "superior":
+        {
+            clearTimeout(responsibilityTimer);
+            postMessage({
+                command: "log",
+                time: getDate(),
+                entry: "Received <span class='cmd'>SUPERIOR</span> from " + letters[e.data.from] + ", conceding",
+                uid: _uid,
+                from: _uid
+            });
+            break;
+        }
 
+        case "route":
+        {
+            postMessage({
+                command: "log",
+                time: getDate(),
+                entry: "Received <span class='cmd'>ROUTE</span> from " + e.data.from,
+                uid: _uid,
+                from: _uid
+            });
+            origin = e.data.origin;
+            destination = e.data.destination;
+            reset();
+            takeResponsibility();
+            break;
+        }
+
+        case "range":
+        {
+            clientX = e.data.x;
+            clientY = e.data.y;
+            clientRange = (!toFinal) ? getDistanceToClient() : finalDistance - getDistanceToClient();
+
+            var sentThisTime = false;
+            for (i = 0; i < instStatus.length; i++) {
+                if (clientRange <= instStatus[i].dist && !instStatus[i].sent
+                    && initDistance >= instStatus[i].dist) {
+
+                    instStatus[i].sent = true;
+
+                    if (!sentThisTime) {
+                        // Get instruction
+                        postMessage({
+                            command: "instruction",
+                            instruction: {direction: getInstruction().direction, distance: instStatus[i].dist},
+                            time: getDate(),
+                            from: _uid
+                        });
+                        sentThisTime = true;
+                    }
+                }
+            }
+
+            // Check if it's time to route and transfer
+            if (Math.abs(clientRange) <= 8 && !sentLast) {
+                sentLast = true;
+                // Send final turing direction
+                postMessage({
+                    command: "instruction",
+                    instruction: {distance: 0, direction: getInstruction().direction},
+                    time: getDate(),
+                    from: _uid
+                });
+
+                var next = getNextNode();
+                if (next instanceof Array) {
+                    // Time to go to dest!
+                    toFinal = true;
+                    sentLast = false;
+                    instStatus = [false, false, false];
+                } else {
+                    // Route to next node
                     postMessage({
                         command: "log",
                         time: getDate(),
-                        entry: "Sent <span class='cmd'>SUPERIOR</span> to " + letters[e.data.from],
+                        entry: "Routing to next node...sending <span class='cmd'>ROUTE</span>",
                         uid: _uid,
                         from: _uid
                     });
-                }
-                break;
-            }
-            case "superior":
-            {
-                clearTimeout(responsibilityTimer);
-                postMessage({
-                    command: "log",
-                    time: getDate(),
-                    entry: "Received <span class='cmd'>SUPERIOR</span> from " + letters[e.data.from] + ", conceding",
-                    uid: _uid,
-                    from: _uid
-                });
-                break;
-            }
 
-            case "route":
-            {
-                postMessage({
-                    command: "log",
-                    time: getDate(),
-                    entry: "Received <span class='cmd'>ROUTE</span> from " + e.data.from,
-                    uid: _uid,
-                    from: _uid
-                });
-                origin = e.data.origin;
-                destination = e.data.destination;
-                reset();
-                takeResponsibility();
-                break;
-            }
-
-            case "range": {
-                clientX = e.data.x;
-                clientY = e.data.y;
-                clientRange = (!toFinal) ? getDistanceToClient() : finalDistance - getDistanceToClient();
-                if ((clientRange < 100 && !instStatus[0] && initDistance >= 100) || (clientRange < 50 && !instStatus[1] && initDistance >= 50) ||
-                    (clientRange < 20 && !instStatus[2] && initDistance >= 20)) {
-                    for (i=0; i<instStatus.length; i++) {
-                        if (instStatus[i] === false) {
-                            instStatus[i] = true;
-                            break;
+                    postMessage({
+                        routeTo: next,
+                        from: _uid,
+                        packet: {
+                            command: "route",
+                            destination: "x",
+                            origin: letters[_uid]
                         }
-                    }
-                    // Get instruction
-                    postMessage({
-                        command: "instruction",
-                        instruction: getInstruction(),
-                        time: getDate(),
-                        from: _uid
                     });
+                    clearInterval(rangeTimer);
+                    reset();
                 }
-
-                // Check if it's time to route and transfer
-                if (Math.abs(clientRange) <= 8 && !sentLast) {
-                    sentLast = true;
-                    // Send final turing direction
-                    postMessage({
-                        command: "instruction",
-                        instruction: {distance: 0, direction: getInstruction().direction},
-                        time: getDate(),
-                        from: _uid
-                    });
-
-                    var next = getNextNode();
-                    if (next instanceof Array) {
-                        // Time to go to dest!
-                        toFinal = true;
-                        sentLast = false;
-                        instStatus = [false, false, false];
-                    } else {
-                        // Route to next node
-                        postMessage({
-                            command: "log",
-                            time: getDate(),
-                            entry: "Routing to next node...sending <span class='cmd'>ROUTE</span>",
-                            uid: _uid,
-                            from: _uid
-                        });
-
-                        postMessage({
-                            routeTo: next,
-                            from: _uid,
-                            packet: {
-                                command: "route",
-                                destination: "x",
-                                origin: letters[_uid]
-                            }
-                        });
-                        clearInterval(rangeTimer);
-                        reset();
-                    }
-                }
-                break;
             }
+            break;
         }
-    };
+    }
+};
 
 function getDistanceToClient() {
     var xDiff = Math.pow(myX - clientX, 2);
@@ -203,7 +213,7 @@ function getDate() {
     return date.toISOString().substring(11);
 }
 
-function getInstruction () {
+function getInstruction() {
     if (!toFinal) {
         var direction = (table[destination][origin]) ? table[destination][origin].direction : origin;
         var distance = Math.round(getDistanceToClient());
@@ -217,7 +227,7 @@ function getInstruction () {
     }
 }
 
-function getNextNode () {
+function getNextNode() {
     if (table[destination].next > -1) {
         return table[destination].next;
     } else {
@@ -225,7 +235,7 @@ function getNextNode () {
     }
 }
 
-function rangeReq () {
+function rangeReq() {
     //clearInterval(rangeTimer);
     postMessage({
         command: "range",
@@ -234,15 +244,20 @@ function rangeReq () {
     });
 }
 
-function reset () {
-    instStatus = [false, false, false, false];
+function reset() {
     toFinal = false;
     finalDistance = 0;
     sentLast = false;
     initDistance = 0;
+    instStatus = [
+        {dist: 200, sent: false},
+        {dist: 100, sent: false},
+        {dist: 50, sent: false},
+        {dist: 20, sent: false}
+    ];
 }
 
-function takeResponsibility () {
+function takeResponsibility() {
     client = true;
 
     rangeTimer = setInterval(rangeReq, 6000);
