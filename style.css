@@ -122,12 +122,12 @@ body, html {
 
 .dot {
     background-color: cyan;
-    width: 20px;
-    height: 20px;
-    border-radius: 10px;
+    width: 13px;
+    height: 13px;
+    border-radius: 7px;
     position: absolute;
     z-index: 6000;
-    display: none;
+    display: block;
 }
 
 .button {

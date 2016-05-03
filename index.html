@@ -110,6 +110,7 @@
     var mazeWidth = canvas.width;
     var mazeHeight = canvas.height;
     var intervalVar;
+    var activeState = true;
 
     var sensorPositions = [
         {x: w * .26, y: h * .72},
@@ -305,11 +306,11 @@
         var canMove = 1; // 1 means: the rectangle can move
         if (destX >= 0 && destX <= mazeWidth - 40 && destY >= 0 && destY <= mazeHeight - 40) {
             for (var i = 0; i < 4 * 40 * 40; i += 4) {
-                if (data[i] === 96) { // not same color as bg
+                if (data[i] > 90 && data[i] < 105) { // not same color as bg
                     canMove = 0; // 0 means: the rectangle can't move
                     break;
                 }
-                else if (data[i] === 47) { // #00FF00
+                else if (data[i] > 40 && data[i] < 60) { // #00FF00
                     terminate();
                     return;
                 }
@@ -325,12 +326,15 @@
     }
 
     function terminate () {
-        for (i=0; i<sensors.length; i++) {
-            sensors[i].terminate();
-            writeToLog(i, client.time(), "Sensor node terminated.");
+        if (activeState) {
+            for (i = 0; i < sensors.length; i++) {
+                sensors[i].terminate();
+                writeToLog(i, client.time(), "Sensor node terminated.");
+            }
+            speakMessage("Navigation complete. Goodbye!");
+            //$("#start").fadeIn("slow");
+            activeState = false;
         }
-        speakMessage("Navigation complete. Goodbye!");
-        $("#start").fadeIn("slow");
     }
 
     function speakMessage (msg) {
@@ -384,7 +388,7 @@
     function animateMessage(a_x, a_y, b_x, b_y) {
         var dot = $("<div class='dot'></div>");
         $("#main").append(dot[0]);
-        dot.fadeIn('fast');
+        //dot.fadeIn('fast');
         var bezier_params = {
             start: {
                 x: a_x,
@@ -408,63 +412,73 @@
 
     drawMazeAndRectangle(3, 3);
     window.addEventListener("keydown", moveRect, true);
+    buildThreads();
 
     $("#start").click(function() {
-        // Init client
-        writeToLog("client", client.time(), "Wearable initialized.");
+        if (!activeState) {
+            buildThreads();
+        } else {
+            // Init client
+            writeToLog("client", client.time(), "Wearable initialized.");
 
-        client.start("x");
+            client.start("x");
 
-        $(this).fadeOut('slow');
+            $(this).fadeOut('slow');
+
+            activeState = true;
+        }
 
     });
 
-    // Build worker threads
-    for (i = 0; i < 3; i++) {
-        sensors.push(new Worker("sensor.js"));
-        //sensors[i].start();
-        sensors[i].onmessage = function (e) {
-            console.log("Received ack from " + e.data.uid);
-            if (typeof e.data.routeTo !== 'undefined') {
-                return broker(e.data.from, e.data.routeTo, e.data.packet);
-            }
-            if (e.data.command == "range") {
-                rangeRecCount++;
-                if (rangeRecCount % 20 == 0) {
+    function buildThreads () {
+        // Build worker threads
+        sensors = [];
+        for (i = 0; i < 3; i++) {
+            sensors.push(new Worker("sensor.js"));
+            //sensors[i].start();
+            sensors[i].onmessage = function (e) {
+                console.log("Received ack from " + e.data.uid);
+                if (typeof e.data.routeTo !== 'undefined') {
+                    return broker(e.data.from, e.data.routeTo, e.data.packet);
+                }
+                if (e.data.command == "range") {
+                    rangeRecCount++;
+                    if (rangeRecCount % 20 == 0) {
+                        animateMessage(sensorPositions[e.data.from].x, sensorPositions[e.data.from].y, client.x, client.y);
+                    }
+                } else {
                     animateMessage(sensorPositions[e.data.from].x, sensorPositions[e.data.from].y, client.x, client.y);
                 }
-            } else {
-                animateMessage(sensorPositions[e.data.from].x, sensorPositions[e.data.from].y, client.x, client.y);
-            }
-            switch (e.data.command) {
-                case "log":
-                    writeToLog(e.data.uid, e.data.time, e.data.entry);
-                    break;
-                case "instruction":
-                    var partOne = (e.data.instruction.distance > 0) ? "In " + e.data.instruction.distance + " feet, " : "";
-                    writeToLog("client", e.data.time, "<span class='cmd'>INSTRUCTION</span>: " + partOne + dirNames[e.data.instruction.direction]);
-                    speakMessage(partOne + dirNames[e.data.instruction.direction]);
-                    break;
-                case "range":
-                    rangeSendCount++;
-                    if (rangeSendCount % 20 == 0) {
-                        animateMessage(client.x, client.y, sensorPositions[e.data.from].x, sensorPositions[e.data.from].y);
-                    }
-                    sensors[e.data.from].postMessage({
-                        command: "range",
-                        x: client.x,
-                        y: client.y
-                    });
-                    break;
-            }
-        };
-        sensors[i].postMessage({
-            command: "init",
-            uid: i,
-            table: lookupTables[i],
-            x: sensorPositions[i].x,
-            y: sensorPositions[i].y
-        });
+                switch (e.data.command) {
+                    case "log":
+                        writeToLog(e.data.uid, e.data.time, e.data.entry);
+                        break;
+                    case "instruction":
+                        var partOne = (e.data.instruction.distance > 0) ? "In " + e.data.instruction.distance + " feet, " : "";
+                        writeToLog("client", e.data.time, "<span class='cmd'>INSTRUCTION</span>: " + partOne + dirNames[e.data.instruction.direction]);
+                        speakMessage(partOne + dirNames[e.data.instruction.direction]);
+                        break;
+                    case "range":
+                        rangeSendCount++;
+                        if (rangeSendCount % 20 == 0) {
+                            animateMessage(client.x, client.y, sensorPositions[e.data.from].x, sensorPositions[e.data.from].y);
+                        }
+                        sensors[e.data.from].postMessage({
+                            command: "range",
+                            x: client.x,
+                            y: client.y
+                        });
+                        break;
+                }
+            };
+            sensors[i].postMessage({
+                command: "init",
+                uid: i,
+                table: lookupTables[i],
+                x: sensorPositions[i].x,
+                y: sensorPositions[i].y
+            });
+        }
     }
 
 </script>

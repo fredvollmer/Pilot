@@ -9,7 +9,7 @@ var myX, myY;
 var clientRange;
 var instStatus = [
     {dist: 200, sent: false},
-    {dist: 100, sent: false},
+    {dist: 150, sent: false},
     {dist: 50, sent: false},
     {dist: 20, sent: false}
 ];
@@ -260,7 +260,7 @@ function reset() {
     initDistance = 0;
     instStatus = [
         {dist: 200, sent: false},
-        {dist: 100, sent: false},
+        {dist: 150, sent: false},
         {dist: 50, sent: false},
         {dist: 20, sent: false}
     ];
