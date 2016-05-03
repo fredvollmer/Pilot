@@ -10,8 +10,8 @@ var clientRange;
 var instStatus = [
     {dist: 200, sent: false},
     {dist: 150, sent: false},
-    {dist: 50, sent: false},
-    {dist: 20, sent: false}
+    {dist: 50, sent: false}//,
+    //{dist: 20, sent: false}
 ];
 var toFinal = false;
 var finalDistance = 0;
@@ -149,7 +149,7 @@ onmessage = function (e) {
                         // Get instruction
                         postMessage({
                             command: "instruction",
-                            instruction: {direction: getInstruction().direction, distance: instStatus[i].dist},
+                            instruction: {direction: getInstruction().direction, distance: instStatus[i].dist / 10},
                             time: getDate(),
                             from: _uid
                         });
@@ -159,7 +159,7 @@ onmessage = function (e) {
             }
 
             // Check if it's time to route and transfer
-            if (Math.abs(clientRange) <= 8 && !sentLast) {
+            if (Math.abs(clientRange) <= 19 && !sentLast) {
                 sentLast = true;
                 // Send final turing direction
                 postMessage({
@@ -179,8 +179,8 @@ onmessage = function (e) {
                     instStatus = [
                         {dist: 200, sent: false},
                         {dist: 100, sent: false},
-                        {dist: 50, sent: false},
-                        {dist: 20, sent: false}
+                        {dist: 50, sent: false}//,
+                        //{dist: 20, sent: false}
                     ];
                 } else {
                     // Route to next node
@@ -214,6 +214,7 @@ onmessage = function (e) {
 function getDistanceToClient() {
     var xDiff = Math.pow(myX - clientX, 2);
     var yDiff = Math.pow(myY - clientY, 2);
+    console.log("Distance: " + Math.pow(xDiff + yDiff, 0.5));
     return Math.pow(xDiff + yDiff, 0.5);
 }
 
@@ -261,8 +262,8 @@ function reset() {
     instStatus = [
         {dist: 200, sent: false},
         {dist: 150, sent: false},
-        {dist: 50, sent: false},
-        {dist: 20, sent: false}
+        {dist: 50, sent: false}//,
+        //{dist: 20, sent: false}
     ];
 }
 
@@ -276,7 +277,7 @@ function takeResponsibility() {
     // Send initial instruction
     postMessage({
         command: "instruction",
-        instruction: getInstruction(),
+        instruction: {direction: getInstruction().direction, distance: Math.round(getInstruction().distance / 10)},
         time: getDate(),
         from: _uid
     });

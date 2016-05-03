@@ -69,6 +69,10 @@
         x: {
             // Origin
             B: {direction: direction.TURNAROUND, next: 1},
+            0: {direction: direction.RIGHT, next: 1},
+            1: {direction: direction.STRAIGHT, next: 1},
+            2: {direction: direction.LEFT, next: 1},
+            3: {direction: direction.TURNAROUND, next: 1},
             next: 1
         }
     };
@@ -78,6 +82,10 @@
             // Origin
             A: {direction: direction.LEFT, next: 2},
             C: {direction: direction.TURNAROUND, next: 2},
+            0: {direction: direction.STRAIGHT, next: 2},
+            1: {direction: direction.LEFT, next: 2},
+            2: {direction: direction.TURNAROUND, next: 2},
+            3: {direction: direction.RIGHT, next: 2},
             next: 2
         }
     };
@@ -87,8 +95,12 @@
             // Origin
             A: {direction: direction.TURNAROUND, next: -1},
             B: {direction: direction.LEFT, next: -1},
+            0: {direction: direction.LEFT, next: -1},
+            1: {direction: direction.TURNAROUND, next: -1},
+            2: {direction: direction.RIGHT, next: -1},
+            3: {direction: direction.STRAIGHT, next: -1},
             next: -1,
-            final: [235, direction.RIGHT]
+            final: [205, direction.RIGHT]
         }
     };
 
@@ -113,9 +125,9 @@
     var activeState = true;
 
     var sensorPositions = [
-        {x: w * .26, y: h * .72},
-        {x: w * .6, y: h * .72},
-        {x: w * .6, y: h * .27}
+        {x: w * .26, y: h * .74},
+        {x: w * .62, y: h * .74},
+        {x: w * .62, y: h * .27}
     ];
 
     class Client {
@@ -135,7 +147,7 @@
                 sensors[i].postMessage({
                     command: "start",
                     destination: destination,
-                    origin: this.orientation,
+                    origin: currentBearing,
                     clientX: this.x,
                     clientY: this.y
                 });
@@ -156,39 +168,39 @@
 
             // Sensor A
             context.beginPath();
-            context.arc(sensorPositions[0].x, sensorPositions[0].y, 21, 0, 2 * Math.PI, false);
+            context.arc(sensorPositions[0].x, sensorPositions[0].y, 11, 0, 2 * Math.PI, false);
             context.closePath();
             context.fillStyle = '#DEA54B';
             context.fill();
-            context.font = "30px Arial";
+            context.font = "18px Arial";
             context.fillStyle = "white";
             context.textAlign = "center";
             context.textBaseline = "middle";
-            context.fillText("A", w * .26, h * .72);
+            context.fillText("A", sensorPositions[0].x, sensorPositions[0].y);
 
             // Sensor B
             context.beginPath();
-            context.arc(sensorPositions[1].x, sensorPositions[1].y, 21, 0, 2 * Math.PI, false);
+            context.arc(sensorPositions[1].x, sensorPositions[1].y, 11, 0, 2 * Math.PI, false);
             context.closePath();
             context.fillStyle = '#CF5742';
             context.fill();
-            context.font = "30px Arial";
+            context.font = "18px Arial";
             context.fillStyle = "white";
             context.textAlign = "center";
             context.textBaseline = "middle";
-            context.fillText("B", w * .6, h * .72);
+            context.fillText("B", sensorPositions[1].x, sensorPositions[1].y);
 
             // Sensor C
             context.beginPath();
-            context.arc(sensorPositions[2].x, sensorPositions[2].y, 21, 0, 2 * Math.PI, false);
+            context.arc(sensorPositions[2].x, sensorPositions[2].y, 11, 0, 2 * Math.PI, false);
             context.closePath();
             context.fillStyle = '#814C99';
             context.fill();
-            context.font = "30px Arial";
+            context.font = "18px Arial";
             context.fillStyle = "white";
             context.textAlign = "center";
             context.textBaseline = "middle";
-            context.fillText("C", w * .6, h * .27);
+            context.fillText("C", sensorPositions[2].x, sensorPositions[2].y);
 
             // Arrow
             $("#arrow").css({
@@ -304,8 +316,8 @@
         var imgData = context.getImageData(destX, destY, 40, 40);
         var data = imgData.data;
         var canMove = 1; // 1 means: the rectangle can move
-        if (destX >= 0 && destX <= mazeWidth - 40 && destY >= 0 && destY <= mazeHeight - 40) {
-            for (var i = 0; i < 4 * 40 * 40; i += 4) {
+        if (destX >= 0 && destX <= mazeWidth - 25 && destY >= 0 && destY <= mazeHeight - 25) {
+            for (var i = 0; i < 4 * 25 * 25; i += 4) {
                 if (data[i] > 90 && data[i] < 105) { // not same color as bg
                     canMove = 0; // 0 means: the rectangle can't move
                     break;

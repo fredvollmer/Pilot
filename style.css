@@ -58,7 +58,7 @@ body, html {
 }
 
 .node-title img {
-    width: 42px;
+    width: 30px;
     height: auto;
 }
 
@@ -116,8 +116,8 @@ body, html {
 
 #arrow {
     position: absolute;
-    width: 40px;
-    height: 40px;
+    width: 25px;
+    height: 25px;
 }
 
 .dot {
@@ -135,11 +135,11 @@ body, html {
     width: 120px;
     background-color: #438573;
     text-align: center;
-    height: 35px;
+    height: 25px;
     float: right;
     margin-right: 15px;
     color: white;
-    padding-top: 10px;
+    padding-top: 6px;
     display: block;
     font-size: 20px;
     font-family:  arial, sans-serif;
